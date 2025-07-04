@@ -1,4 +1,8 @@
-﻿using System;
+﻿using LiveCharts;
+using LiveCharts.Wpf;
+using OpenHardwareMonitor.Hardware;
+using OpenHardwareMonitor.Hardware.CPU;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -8,8 +12,6 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using OpenHardwareMonitor.Hardware;
-using OpenHardwareMonitor.Hardware.CPU;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.Button;
 
 
@@ -44,11 +46,39 @@ namespace GPUTemperatureMonitor
             set { _currentGpuTemp = value; }
         }
 
+        private ChartValues<int> _tempValues = new ChartValues<int>();
+
         #endregion
 
         public HomeScreen()
         {
             InitializeComponent();
+        }
+
+        private void InitializeChart()
+        {
+            gpuTempChart.Series = new SeriesCollection
+    {
+        new LineSeries
+        {
+            Title = "GPU Temp (°C)",
+            Values = _tempValues,
+            PointGeometry = null
+        }
+    };
+
+            gpuTempChart.AxisX.Add(new Axis
+            {
+                Title = "Time (s)",
+                Labels = null
+            });
+
+            gpuTempChart.AxisY.Add(new Axis
+            {
+                Title = "Temperature (°C)",
+                MinValue = 0,
+                MaxValue = 100
+            });
         }
 
         /// <summary>
@@ -58,6 +88,7 @@ namespace GPUTemperatureMonitor
         /// <param name="e"></param>
         private async void Form1_Load(object sender, EventArgs e)
         {
+            InitializeChart();
             // try to start monitoring the GPU temperature when the form loads
             // and handle any exceptions that may occur.
             try
@@ -97,6 +128,14 @@ namespace GPUTemperatureMonitor
                     this.Invoke((MethodInvoker)(() =>
                     {
                         gpuTempLabel.Text = _currentGpuTemp.ToString() + "°C";
+
+                        // Update the chart with the latest temperature
+                        this.Invoke((MethodInvoker)(() =>
+                        {
+                            _tempValues.Add(_currentGpuTemp);
+                            if (_tempValues.Count > 60) // Keep last 60 seconds
+                                _tempValues.RemoveAt(0);
+                        }));
 
                         if (_currentGpuTemp >= CriticalTemp)
                         {
