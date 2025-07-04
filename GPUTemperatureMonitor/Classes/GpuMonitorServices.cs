@@ -1,4 +1,7 @@
-﻿using OpenHardwareMonitor.Hardware;
+﻿using NvAPIWrapper;
+using NvAPIWrapper.GPU;
+using NvAPIWrapper.Native.GPU;
+using OpenHardwareMonitor.Hardware;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -45,7 +48,7 @@ namespace GPUTemperatureMonitor.Classes
         /// <summary>
         /// Default constructor initializes the Computer object
         /// </summary>
-        static GpuMonitorServices() 
+        static GpuMonitorServices()
         {
             _computer = new Computer
             {
@@ -54,26 +57,6 @@ namespace GPUTemperatureMonitor.Classes
             };
 
             _computer.Open();
-        }
-
-        /// <summary>
-        /// fGet the GPU fan RPM (Revolutions Per Minute)
-        /// </summary>
-        /// <returns></returns>
-        public static int GetGpuFanRpm()
-        {
-            foreach (IHardware hardware in _computer.Hardware)
-            {
-                if (IsGpu(hardware))
-                {
-                    hardware.Update();
-                    var fanSensor = hardware.Sensors
-                        .FirstOrDefault(s => s.SensorType == SensorType.Fan);
-                    return (int)(fanSensor?.Value ?? 0);
-                }
-            }
-
-            return 0;
         }
 
         /// <summary>
@@ -132,57 +115,3 @@ namespace GPUTemperatureMonitor.Classes
             hardware.HardwareType == HardwareType.GpuAti;
         }
 }
-
-//using OpenHardwareMonitor.Hardware;
-//using System.Linq;
-
-//public class GpuMonitorService
-//{
-//    private Computer _computer;
-
-//    public GpuMonitorService()
-//    {
-//        _computer = new Computer
-//        {
-//            GPUEnabled = true,
-//            CPUEnabled = false
-//        };
-//        _computer.Open();
-//    }
-
-//    public int GetGpuTemperature()
-//    {
-//        foreach (IHardware hardware in _computer.Hardware)
-//        {
-//            if (IsGpu(hardware))
-//            {
-//                hardware.Update();
-//                var tempSensor = hardware.Sensors
-//                    .FirstOrDefault(s => s.SensorType == SensorType.Temperature);
-//                return (int)(tempSensor?.Value ?? 0);
-//            }
-//        }
-
-//        return 0;
-//    }
-
-//    public int GetGpuFanRpm()
-//    {
-//        foreach (IHardware hardware in _computer.Hardware)
-//        {
-//            if (IsGpu(hardware))
-//            {
-//                hardware.Update();
-//                var fanSensor = hardware.Sensors
-//                    .FirstOrDefault(s => s.SensorType == SensorType.Fan);
-//                return (int)(fanSensor?.Value ?? 0);
-//            }
-//        }
-
-//        return 0;
-//    }
-
-//    private bool IsGpu(IHardware hardware) =>
-//        hardware.HardwareType == HardwareType.GpuNvidia ||
-//        hardware.HardwareType == HardwareType.GpuAti;
-//}

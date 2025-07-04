@@ -23,6 +23,8 @@ namespace GPUTemperatureMonitor
         private static bool _tempFound = false;
 
         private static readonly int MinimumTempAlert = 75;
+        private static readonly int CriticalTemp = 95;
+        private static readonly int WarningTemp = 85;
 
         /// <summary>
         /// This controls the 
@@ -50,37 +52,6 @@ namespace GPUTemperatureMonitor
         }
 
         /// <summary>
-        /// Continuously monitor the GPU temperature and update the label on the form.
-        /// </summary>
-        /// <returns></returns>
-        /// 
-        public async Task<bool> StartMonitoring()
-          {
-              Computer comp = new Computer();
-              comp.Open();
-              comp.CPUEnabled = false;
-              comp.GPUEnabled = true;
-
-              await Task.Run(async () =>
-              {
-                  while (true)
-                  {
-                      _currentGpuTemp = Convert.ToInt32(await Classes.GpuMonitorServices.GetGpuTempAsync());
-
-                      this.Invoke((MethodInvoker)(() =>
-                      {
-                          gpuTempLabel.Text = _currentGpuTemp.ToString() + "°C";
-                      }));
-
-                      await Task.Delay(1000); // non-blocking delay
-                  }
-              });
-
-              return false;
-          }
-
-
-        /// <summary>
         /// Form load event handler to initialize the GPU temperature monitoring
         /// </summary>
         /// <param name="sender"></param>
@@ -95,28 +66,63 @@ namespace GPUTemperatureMonitor
 
                 // Kicks off the asynchronous method to start monitoring the GPU temperature
                 // on form load and updates the label accordingly.
-                await BtnMonitor_ClickAsync(this, e);
+                bool a = await StartMonitoring();
+
+
             }
             catch (Exception ex)
             {
                 toolStripStatusLabel1.Text = "Error: " + ex.Message;
                 MessageBox.Show("An error occurred while starting the GPU temperature monitor: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
-
         }
 
         /// <summary>
-        /// Button click event handler to start monitoring the GPU temperature asynchronously.
-        /// requires the use of async/await to ensure the UI remains responsive.
+        /// Continuously monitor the GPU temperature and update the label on the form.
         /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        /// <returns></returns>
-        private async Task<bool> BtnMonitor_ClickAsync(object sender, EventArgs e)
+        /// <returns></returns>        
+        public async Task<bool> StartMonitoring()
         {
-            bool a = await StartMonitoring();
+            Computer comp = new Computer();
+            comp.Open();
+            comp.CPUEnabled = false;
+            comp.GPUEnabled = true;
 
-            return a;
+            await Task.Run(async () =>
+            {
+                while (true)
+                {
+                    _currentGpuTemp = Convert.ToInt32(await Classes.GpuMonitorServices.GetGpuTempAsync());
+
+                    this.Invoke((MethodInvoker)(() =>
+                    {
+                        gpuTempLabel.Text = _currentGpuTemp.ToString() + "°C";
+
+                        if (_currentGpuTemp >= CriticalTemp)
+                        {
+                            gpuTempLabel.ForeColor = Color.Red;
+                            toolStripStatusLabel1.Text = "🔥 Critical GPU Temperature!";
+                        }
+                        else if (_currentGpuTemp >= WarningTemp)
+                        {
+                            gpuTempLabel.ForeColor = Color.Orange;
+                            toolStripStatusLabel1.Text = "⚠️ High GPU Temperature";
+                        }
+                        else
+                        {
+                            gpuTempLabel.ForeColor = Color.Green;
+                            toolStripStatusLabel1.Text = "GPU Temperature is normal.";
+                        }
+
+                    }));
+
+                    
+
+                    await Task.Delay(1000); // non-blocking delay
+                }
+            });
+
+            return false;
         }
     }
 }
